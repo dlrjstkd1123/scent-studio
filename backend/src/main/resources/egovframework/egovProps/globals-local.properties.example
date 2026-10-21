@@ -1,0 +1,19 @@
+#-----------------------------------------------------------------------
+# 이 파일을 globals-local.properties 로 복사한 뒤 Supabase 값을 채우세요.
+# globals-local.properties 는 git 에 올라가지 않고, globals.properties 의 같은 키를 덮어씁니다.
+#
+# Supabase 대시보드 > 프로젝트 상단 [Connect] > "Session pooler" 탭의 값을 사용하세요.
+#  - Direct connection(db.<ref>.supabase.co)은 IPv6 전용이라 대부분의 국내 네트워크에서 접속이 안 됩니다.
+#-----------------------------------------------------------------------
+Globals.postgres.Url = jdbc:postgresql://aws-0-<region>.pooler.supabase.com:5432/postgres?sslmode=require
+Globals.postgres.UserName = postgres.<project-ref>
+Globals.postgres.Password = <database-password>
+
+# 관리자 화면 로그인 키 (아무 긴 문자열)
+Globals.Admin.Key = <admin-key>
+
+# Fragella 대시보드(https://api.fragella.com) > API Key (x-api-key). 공개 위젯 키(pub_...)가 아님
+Globals.Fragella.ApiKey = <fragella-api-key>
+
+# Google AI Studio(https://aistudio.google.com) > Get API key
+Globals.Gemini.ApiKey = <gemini-api-key>

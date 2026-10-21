@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.seedssoft.platform.admin.dao.AdminDataDao">
+
+    <!-- 테이블별 건수 -->
+    <select id="selectSummary" resultType="kr.co.seedssoft.platform.admin.dto.AdminSummary">
+        SELECT (SELECT count(*) FROM perfume)                                   AS perfume_count
+             , (SELECT count(*) FROM ingredient)                                AS ingredient_count
+             , (SELECT count(*) FROM ingredient WHERE family_code IS NULL)      AS unassigned_ingredient_count
+             , (SELECT count(*) FROM perfume_ingredient)                        AS perfume_note_count
+             , (SELECT count(*) FROM perfume_accord)                            AS perfume_accord_count
+             , (SELECT count(*) FROM ingredient_alias)                          AS ingredient_alias_count
+             , (SELECT count(*) FROM accord_family_map)                         AS accord_family_map_count
+             , (SELECT count(*) FROM search_keyword_translation)                AS keyword_translation_count
+             , (SELECT count(*) FROM ifra_standard)                             AS ifra_standard_count
+             , (SELECT count(*) FROM scent_family)                              AS family_count
+    </select>
+
+    <!-- ===================================================== 향 계열 -->
+    <select id="selectFamilyList" resultType="kr.co.seedssoft.platform.admin.dto.ScentFamilyList">
+        SELECT f.family_code
+             , f.family_name_en
+             , f.family_name_ko
+             , f.hex_color_code
+             , f.sort_order
+             , count(i.ingredient_id) AS ingredient_count
+          FROM scent_family f
+          LEFT JOIN ingredient i ON i.family_code = f.family_code
+         GROUP BY f.family_code
+         ORDER BY f.sort_order, f.family_code
+    </select>
+
+    <select id="selectFamilyCodeList" resultType="string">
+        SELECT family_code FROM scent_family
+    </select>
+
+    <update id="updateFamily">
+        UPDATE scent_family
+           SET family_name_ko = #{familyNameKo}
+             , hex_color_code = #{hexColorCode}
+         WHERE family_code = #{familyCode}
+    </update>
+
+    <!-- ===================================================== 향료 -->
+    <!--
+        INSERT ... ON CONFLICT ... RETURNING 은 결과를 받아야 해서 select 로 실행한다.
+        같은 트랜잭션 안에서 결과가 캐시되지 않도록 flushCache/useCache 를 끈다.
+        (xmax = 0) : 새로 INSERT 된 행이면 true, 기존 행을 UPDATE 했으면 false
+    -->
+    <select id="upsertIngredient" resultType="kr.co.seedssoft.platform.admin.dto.UpsertResult"
+            flushCache="true" useCache="false">
+        INSERT INTO ingredient (ingredient_name_en, ingredient_name_ko, family_code, default_note_type)
+        VALUES (#{ingredientNameEn}, #{ingredientNameKo}, #{familyCode}, #{defaultNoteType})
+        ON CONFLICT (lower(ingredient_name_en)) DO UPDATE
+           SET ingredient_name_ko = COALESCE(EXCLUDED.ingredient_name_ko, ingredient.ingredient_name_ko)
+             , family_code        = COALESCE(EXCLUDED.family_code, ingredient.family_code)
+             , default_note_type  = COALESCE(EXCLUDED.default_note_type, ingredient.default_note_type)
+             , updated_at         = now()
+        RETURNING ingredient_id AS id, (xmax = 0) AS inserted
+    </select>
+
+    <!-- 향수 노트에 나온 향료: 있으면 그 id, 없으면 새로 추가 (기존 값은 건드리지 않음) -->
+    <select id="findOrInsertIngredient" resultType="kr.co.seedssoft.platform.admin.dto.UpsertResult"
+            flushCache="true" useCache="false">
+        INSERT INTO ingredient (ingredient_name_en, default_note_type)
+        VALUES (#{ingredientNameEn}, #{defaultNoteType})
+        ON CONFLICT (lower(ingredient_name_en)) DO UPDATE
+           SET default_note_type = COALESCE(ingredient.default_note_type, EXCLUDED.default_note_type)
+        RETURNING ingredient_id AS id, (xmax = 0) AS inserted
+    </select>
+
+    <!-- ===================================================== 향수 -->
+    <select id="upsertPerfume" resultType="kr.co.seedssoft.platform.admin.dto.UpsertResult"
+            flushCache="true" useCache="false">
+        INSERT INTO perfume (brand_name, perfume_name, concentration, release_year)
+        VALUES (#{brandName}, #{perfumeName}, #{concentration}, #{releaseYear})
+        ON CONFLICT (lower(brand_name), lower(perfume_name)) DO UPDATE
+           SET concentration = COALESCE(EXCLUDED.concentration, perfume.concentration)
+             , release_year  = COALESCE(EXCLUDED.release_year, perfume.release_year)
+             , updated_at    = now()
+        RETURNING perfume_id AS id, (xmax = 0) AS inserted
+    </select>
+
+    <delete id="deletePerfumeNoteList">
+        DELETE FROM perfume_ingredient WHERE perfume_id = #{perfumeId}
+    </delete>
+
+    <delete id="deletePerfumeAccordList">
+        DELETE FROM perfume_accord WHERE perfume_id = #{perfumeId}
+    </delete>
+
+    <insert id="insertPerfumeNote">
+        INSERT INTO perfume_ingredient (perfume_id, ingredient_id, note_type, sort_order)
+        VALUES (#{perfumeId}, #{ingredientId}, #{noteType}, #{sortOrder})
+        ON CONFLICT DO NOTHING
+    </insert>
+
+    <insert id="insertPerfumeAccord">
+        INSERT INTO perfume_accord (perfume_id, accord_name, strength)
+        VALUES (#{perfumeId}, #{accordName}, #{strength})
+        ON CONFLICT (perfume_id, accord_name) DO UPDATE SET strength = EXCLUDED.strength
+    </insert>
+
+    <!-- ===================================================== 향료 별칭 · 어코드 매핑 -->
+    <select id="selectIngredientNameList" resultType="string">
+        SELECT lower(ingredient_name_en) FROM ingredient
+    </select>
+
+    <!-- 가리키는 향료가 없으면 결과 행이 없다 (null) -->
+    <select id="upsertIngredientAlias" resultType="kr.co.seedssoft.platform.admin.dto.UpsertResult"
+            flushCache="true" useCache="false">
+        INSERT INTO ingredient_alias (alias_name, ingredient_id)
+        SELECT #{aliasName}, i.ingredient_id
+          FROM ingredient i
+         WHERE lower(i.ingredient_name_en) = lower(#{ingredientNameEn})
+        ON CONFLICT (lower(alias_name)) DO UPDATE
+           SET ingredient_id = EXCLUDED.ingredient_id
+        RETURNING ingredient_alias_id AS id, (xmax = 0) AS inserted
+    </select>
+
+    <select id="upsertAccordFamilyMap" resultType="kr.co.seedssoft.platform.admin.dto.UpsertResult"
+            flushCache="true" useCache="false">
+        INSERT INTO accord_family_map (accord_name, family_code)
+        VALUES (#{accordName}, #{familyCode})
+        ON CONFLICT (accord_name) DO UPDATE
+           SET family_code = EXCLUDED.family_code
+             , updated_at  = now()
+        RETURNING accord_family_map_id AS id, (xmax = 0) AS inserted
+    </select>
+
+    <!-- 한글 검색어 → 영문: 관리자 값은 AI 값을 덮어쓴다 (source_type = ADMIN) -->
+    <select id="upsertKeywordTranslation" resultType="kr.co.seedssoft.platform.admin.dto.UpsertResult"
+            flushCache="true" useCache="false">
+        INSERT INTO search_keyword_translation (keyword_ko, keyword_en, source_type)
+        VALUES (#{keywordKo}, #{keywordEn}, 'ADMIN')
+        ON CONFLICT (keyword_ko) DO UPDATE
+           SET keyword_en  = EXCLUDED.keyword_en
+             , source_type = 'ADMIN'
+             , updated_at  = now()
+        RETURNING search_keyword_translation_id AS id, (xmax = 0) AS inserted
+    </select>
+
+    <!-- ===================================================== 업로드 이력 -->
+    <insert id="insertImportLog">
+        INSERT INTO admin_import_log
+               (import_type, file_name, total_count, inserted_count, updated_count, failed_count, message)
+        VALUES (#{importType}, #{fileName}, #{totalCount}, #{insertedCount}, #{updatedCount}, #{failedCount}, #{message})
+    </insert>
+
+    <select id="selectImportLogList" resultType="kr.co.seedssoft.platform.admin.vo.AdminImportLog">
+        SELECT log_id
+             , import_type
+             , file_name
+             , total_count
+             , inserted_count
+             , updated_count
+             , failed_count
+             , message
+             , to_char(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD HH24:MI:SS') AS created_at
+          FROM admin_import_log
+         ORDER BY log_id DESC
+         LIMIT #{limit}
+    </select>
+
+</mapper>

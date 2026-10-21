@@ -1,0 +1,24 @@
+﻿ingredient_name_en,ingredient_name_ko,family_code,default_note_type
+Bergamot,베르가못,CITRUS,TOP
+Lemon,레몬,CITRUS,TOP
+Mandarin Orange,만다린 오렌지,CITRUS,TOP
+Grapefruit,자몽,CITRUS,TOP
+Pink Pepper,핑크 페퍼,SPICY,TOP
+Black Currant,블랙커런트,FRUITY,TOP
+Lavender,라벤더,AROMATIC,MIDDLE
+Neroli,네롤리,FLORAL,MIDDLE
+Rose,장미,FLORAL,MIDDLE
+Jasmine,재스민,FLORAL,MIDDLE
+Iris,아이리스,POWDERY,MIDDLE
+Green Tea,녹차,GREEN,MIDDLE
+Fig Leaf,무화과 잎,GREEN,MIDDLE
+Sea Notes,바다 노트,AQUATIC,MIDDLE
+Cedarwood,시더우드,WOODY,BASE
+Sandalwood,샌달우드,WOODY,BASE
+Vetiver,베티버,WOODY,BASE
+Patchouli,패출리,WOODY,BASE
+Amber,앰버,AMBER,BASE
+Vanilla,바닐라,GOURMAND,BASE
+Tonka Bean,통카빈,GOURMAND,BASE
+White Musk,화이트 머스크,MUSK,BASE
+Leather,레더,LEATHER,BASE

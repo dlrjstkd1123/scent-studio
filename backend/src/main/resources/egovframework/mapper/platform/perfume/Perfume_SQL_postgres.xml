@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.seedssoft.platform.perfume.dao.PerfumeDao">
+
+    <select id="selectNoteFamilyList" resultType="kr.co.seedssoft.platform.perfume.vo.ScentFamily">
+        SELECT family_code
+             , family_name_en
+             , family_name_ko
+             , hex_color_code
+             , sort_order
+          FROM scent_family
+         ORDER BY sort_order, family_code
+    </select>
+
+    <select id="selectNoteIngredientList" resultType="kr.co.seedssoft.platform.perfume.vo.Ingredient">
+        SELECT ingredient_name_en
+             , ingredient_name_ko
+             , family_code
+          FROM ingredient
+         ORDER BY ingredient_name_en
+    </select>
+
+    <select id="selectNoteAliasList" resultType="kr.co.seedssoft.platform.perfume.dto.IngredientAliasList">
+        SELECT a.alias_name
+             , i.ingredient_name_en
+          FROM ingredient_alias a
+          JOIN ingredient i ON i.ingredient_id = a.ingredient_id
+         ORDER BY a.alias_name
+    </select>
+
+    <select id="selectNoteAccordList" resultType="kr.co.seedssoft.platform.perfume.vo.AccordFamilyMap">
+        SELECT accord_name
+             , family_code
+          FROM accord_family_map
+         ORDER BY accord_name
+    </select>
+
+    <!-- ===================================================== 한글 검색어 → 영문 -->
+    <select id="selectKeywordTranslation" resultType="kr.co.seedssoft.platform.perfume.vo.SearchKeywordTranslation">
+        SELECT keyword_ko
+             , keyword_en
+             , source_type
+             , hit_count
+          FROM search_keyword_translation
+         WHERE keyword_ko = #{keywordKo}
+    </select>
+
+    <!-- AI 변환 결과 저장. 이미 있으면(관리자 값 포함) 덮어쓰지 않는다 -->
+    <insert id="insertKeywordTranslation">
+        INSERT INTO search_keyword_translation (keyword_ko, keyword_en, source_type)
+        VALUES (#{keywordKo}, #{keywordEn}, #{sourceType})
+        ON CONFLICT (keyword_ko) DO NOTHING
+    </insert>
+
+    <update id="updateKeywordTranslationHit">
+        UPDATE search_keyword_translation
+           SET hit_count = hit_count + 1
+         WHERE keyword_ko = #{keywordKo}
+    </update>
+
+</mapper>
