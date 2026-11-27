@@ -11,6 +11,7 @@ const router = createRouter({
       name: 'perfumes',
       component: () => import('@/views/PerfumeExploreView.vue')
     },
+    { path: '/aura', name: 'aura', component: () => import('@/views/AuraView.vue') },
     { path: '/health', name: 'health', component: () => import('@/views/HealthView.vue') },
     { path: '/admin', name: 'admin', component: () => import('@/views/admin/AdminDataView.vue') }
   ],
