@@ -15,7 +15,7 @@ const NAV = [
   { label: '홈', to: '/home' },
   { label: '향수 탐색', to: '/perfumes' },
   { label: '나의 향' },
-  { label: '향 아우라' },
+  { label: '향 아우라', to: '/aura' },
   { label: '블렌딩' },
   { label: '아틀리에' },
   { label: '쇼핑' }
